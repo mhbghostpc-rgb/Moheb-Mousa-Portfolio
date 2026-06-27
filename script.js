@@ -139,6 +139,10 @@ if (tabBtns.length > 0 && tabContents.length > 0) {
 
 // ===== Background Music Logic =====
 const bgMusic = document.getElementById('bg-music');
+if (bgMusic) {
+    bgMusic.volume = 0.5;
+}
+
 const musicToggle = document.getElementById('music-toggle');
 const musicIcon = musicToggle ? musicToggle.querySelector('.music-icon') : null;
 let hasInteracted = false;
@@ -146,19 +150,20 @@ let hasInteracted = false;
 // Function to play music
 const playMusic = () => {
     if (!bgMusic || !musicToggle) return;
+    
     bgMusic.play().then(() => {
         musicToggle.classList.add('playing');
         if (musicIcon) musicIcon.textContent = '🔊';
     }).catch(error => {
-        console.log("Autoplay prevented by browser:", error);
+        console.error("Audio playback failed:", error);
+        if (error.name === 'NotSupportedError' || error.name === 'NotAllowedError') {
+            console.log("Browser blocked audio or file format is unsupported.");
+        }
     });
 };
 
 // Function to toggle music
-if (musicToggle && bgMusic) {
-    // Set a default volume so it isn't too loud
-    bgMusic.volume = 0.5;
-
+if (musicToggle) {
     musicToggle.addEventListener('click', (e) => {
         e.stopPropagation(); // prevent document click from firing
         hasInteracted = true;
