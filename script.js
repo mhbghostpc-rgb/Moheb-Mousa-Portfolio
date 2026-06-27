@@ -140,15 +140,15 @@ if (tabBtns.length > 0 && tabContents.length > 0) {
 // ===== Background Music Logic =====
 const bgMusic = document.getElementById('bg-music');
 const musicToggle = document.getElementById('music-toggle');
-const musicIcon = musicToggle.querySelector('.music-icon');
+const musicIcon = musicToggle ? musicToggle.querySelector('.music-icon') : null;
 let hasInteracted = false;
 
 // Function to play music
 const playMusic = () => {
-    if (!bgMusic) return;
+    if (!bgMusic || !musicToggle) return;
     bgMusic.play().then(() => {
         musicToggle.classList.add('playing');
-        musicIcon.textContent = '🔊';
+        if (musicIcon) musicIcon.textContent = '🔊';
     }).catch(error => {
         console.log("Autoplay prevented by browser:", error);
     });
@@ -156,6 +156,9 @@ const playMusic = () => {
 
 // Function to toggle music
 if (musicToggle && bgMusic) {
+    // Set a default volume so it isn't too loud
+    bgMusic.volume = 0.5;
+
     musicToggle.addEventListener('click', (e) => {
         e.stopPropagation(); // prevent document click from firing
         hasInteracted = true;
@@ -164,15 +167,31 @@ if (musicToggle && bgMusic) {
         } else {
             bgMusic.pause();
             musicToggle.classList.remove('playing');
-            musicIcon.textContent = '🔈';
+            if (musicIcon) musicIcon.textContent = '🔈';
         }
     });
 
     // Try to play on first interaction with the page
-    document.body.addEventListener('click', () => {
+    const interactionEvents = ['click', 'touchstart', 'scroll', 'keydown'];
+    
+    const tryPlayBackground = () => {
         if (!hasInteracted && bgMusic.paused) {
-            hasInteracted = true;
-            playMusic();
+            bgMusic.play().then(() => {
+                hasInteracted = true;
+                musicToggle.classList.add('playing');
+                if (musicIcon) musicIcon.textContent = '🔊';
+                // Remove listeners once successfully started
+                interactionEvents.forEach(evt => document.removeEventListener(evt, tryPlayBackground));
+            }).catch(err => {
+                // Autoplay blocked, wait for next interaction
+            });
+        } else if (hasInteracted) {
+            // Already interacted, clean up listeners
+            interactionEvents.forEach(evt => document.removeEventListener(evt, tryPlayBackground));
         }
-    }, { once: true });
+    };
+
+    interactionEvents.forEach(evt => {
+        document.addEventListener(evt, tryPlayBackground, { passive: true });
+    });
 }
